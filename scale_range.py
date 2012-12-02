@@ -29,11 +29,13 @@ class RangeScale(object):
         if paper_target_size > self.paper_size:
             indoor_distance = self.paper_size / math.tan(visual_angle)
             obj.drawTarget(self.paper_size)
-            obj.setText('%.2f" target at %.2f" simulates %.2fyds' % (self.paper_size, indoor_distance, self.target_range))
+            obj.setText('%.2f" target at %.2f" simulates %.2fyds' %
+                        (self.paper_size, indoor_distance, self.target_range))
             obj.showPage()
         else:
             obj.drawTarget(paper_target_size)
-            obj.setText('%.2f" target at %.2f" simulates %.2fyds' % (paper_target_size, self.indoor_range, self.target_range))
+            obj.setText('%.2f" target at %.2f" simulates %.2fyds' %
+                        (paper_target_size, self.indoor_range, self.target_range))
             obj.showPage()
 
 
