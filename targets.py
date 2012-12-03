@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import cairo
+import math
 
 WIDTH, HEIGHT = 216, 279
 POINT_TO_MM = 72/25.4
@@ -10,17 +11,119 @@ PRINT_MARGIN = 10
 PRINT_WIDTH = PAPER_WIDTH-(PRINT_MARGIN*2)
 PRINT_HEIGHT = PAPER_HEIGHT-(PRINT_MARGIN*2)
 
+
+class SmallBore50Ft(object):
+    def __init__(self, targetRange):
+        filename = "%s_SmallBore.pdf" % targetRange
+        self.surface = cairo.PDFSurface(filename,
+                PAPER_WIDTH,
+                PAPER_HEIGHT)
+        self.ctx = cairo.Context(self.surface)
+
+        self.ctx.scale(POINT_TO_MM, POINT_TO_MM)
+        self.ctx.translate(PRINT_MARGIN, PRINT_MARGIN)
+
+        self.width = 35.5
+        self.height = 35.5
+        self.margins = 5
+
+    def drawTarget(self, scale):
+        self.ctx.save()
+        self.myScale = scale
+        # rescale for different range targets
+        scale2 = ((scale*25.4)/self.height)
+        self.ctx.scale(scale2,scale2)
+        deviceWidth, deviceHeight = self.ctx.device_to_user(PRINT_WIDTH,
+                                                            PRINT_HEIGHT)
+        # TODO: this is messy and I need to sleep on it.
+        num_accross = int(deviceWidth%(self.width+(self.margins*2)))
+        width_per_column = deviceWidth/num_accross
+        column_center = (self.width/2) + self.margins
+        num_high = int(deviceHeight%(self.height+(self.margins*2)))
+        width_per_row = deviceHeight/num_high
+        row_center = (self.height/2) + self.margins
+        while num_accross > 0:
+            working_height = num_high
+            while working_height > 0:
+                left_edge = column_center - (self.width/2)
+                top_edge = row_center - (self.height/2)
+                self.ctx.translate(left_edge, top_edge)
+                self._plotTarget()
+                working_height -= 1
+
+#        while workingHeight <= deviceHeight:
+#            workingWidth = chunkWidth
+#            while workingWidth <= deviceWidth:
+#                leftEdge = workingWidth - (self.width/2)
+#                topEdge = workingHeight - (self.height/2)
+#                self.ctx.save()
+#                self.ctx.translate(leftEdge,topEdge)
+#                self._plotTarget()
+#                self.ctx.restore()
+#                workingWidth += chunkWidth*2
+#            workingHeight += chunkHeight*2
+        # center the print if the scale is to big
+        leftEdge = (deviceWidth/2)-(self.width/2)
+        topEdge = (deviceHeight/2)-(self.height/2)
+        self.ctx.translate(leftEdge,topEdge)
+        self._plotTarget()
+
+
+        self.ctx.restore()
+
+    def _plotTarget(self):
+
+        self.lineWidth = 0.32
+        # 50 Foot small bore target
+        # the target is a bunch of circles so...
+        target_diam = self.width
+        while target_diam > 0:
+            self._plot_circle(target_diam)
+            target_diam -= 4.5 + (self.lineWidth*2)
+        self._plot_circle(.1)
+
+    def _plot_circle(self, diameter):
+        '''plot a circle of the given diameter with a white line outside'''
+        self.ctx.save()
+        self.ctx.set_line_width(self.lineWidth)
+        self.ctx.arc(self.width/2, self.height/2,
+                     diameter/2, math.pi, 180)
+        self.ctx.set_source_rgb(255, 255, 255)
+        self.ctx.stroke_preserve()
+        self.ctx.set_source_rgb(0, 0, 0)
+        self.ctx.fill()
+        self.ctx.restore()
+
+    def setText(self, text):
+        self.ctx.save()
+        deviceWidth, deviceHeight = self.ctx.device_to_user(PRINT_WIDTH,
+                                                            PRINT_HEIGHT)
+        self.ctx.translate(deviceWidth/2,deviceHeight)
+        self.ctx.select_font_face('Sans')
+        self.ctx.set_font_size(5)
+        fontData =  self.ctx.text_extents(text)
+        self.ctx.move_to(-(fontData[2]/2),0)
+        self.ctx.set_source_rgb(0,0,0)
+        self.ctx.show_text(text)
+        self.ctx.restore()
+
+    def showPage(self):
+        self.ctx.show_page()
+
+    def writePNG(self):
+        self.surface.write_to_png('output.png')
+
 class Metric(object):
 
     def __init__(self, targetRange):
         filename = "%s_metric.pdf" % targetRange
         self.surface = cairo.PDFSurface(filename,
-                PAPER_WIDTH, 
+                PAPER_WIDTH,
                 PAPER_HEIGHT)
         self.ctx = cairo.Context(self.surface)
 
-        self.ctx.scale(POINT_TO_MM,POINT_TO_MM)
-        self.ctx.translate(PRINT_MARGIN,PRINT_MARGIN)
+        self.ctx.scale(POINT_TO_MM, POINT_TO_MM)
+        self.ctx.translate(PRINT_MARGIN, PRINT_MARGIN)
 
         self.width = 460.0
         self.height = 760.0
@@ -31,7 +134,8 @@ class Metric(object):
         # rescale for different range targets
         scale2 = ((scale*25.4)/self.height)
         self.ctx.scale(scale2,scale2)
-        deviceWidth, deviceHeight = self.ctx.device_to_user(PRINT_WIDTH,PRINT_HEIGHT)
+        deviceWidth, deviceHeight = self.ctx.device_to_user(PRINT_WIDTH,
+                                                            PRINT_HEIGHT)
         if deviceHeight/4 > self.height:
             # if possible print more than one target
             chunkHeight = deviceHeight/8
@@ -281,7 +385,6 @@ class Classic(object):
                 workingHeight += chunkHeight*2
             leftEdge = deviceWidth
         else:
-            print 'else'
             # center the print if the scale is to big
             leftEdge = (deviceWidth/2)-(self.width/2)
             topEdge = (deviceHeight/2)-(self.height/2)

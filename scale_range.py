@@ -12,6 +12,7 @@ class RangeScale(object):
 
         self.gen_target(targets.Metric)
         self.gen_target(targets.Classic)
+        self.gen_target(targets.SmallBore50Ft)
 
     def gen_target(self, target_obj):
         # Find the paper size and range for a given target size and range...
@@ -42,8 +43,11 @@ class RangeScale(object):
 if __name__ == "__main__":
     if (len(sys.argv) > 1):
         target_range = float(sys.argv[1])
+        range_len = float(sys.argv[2])
     else:
         print ("Enter virtual range in yards")
+        print ("Enter actual range in inches")
         sys.exit()
 
-    shoot = RangeScale(target_range=target_range)
+    shoot = RangeScale(target_range=target_range,
+                       indoor_range=range_len)
